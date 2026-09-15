@@ -1,0 +1,49 @@
+=========================================
+ Reviewing: sample_code\buggy_example.py 
+=========================================
+
+BUGS FOUND:
+1. `multiply(a, b)`: This function adds two numbers instead of multiplying them. It should be renamed to `multiply` or `multiply_numbers` to better reflect its purpose.
+2. `divide(a, b)`: This function divides `a` by `b` and returns the result. It should be renamed to `divide_numbers` to better reflect its purpose.
+
+SUGGESTED FIX:
+```python
+def multiply_numbers(a, b):
+    return a * b
+
+def divide_numbers(a, b):
+    return a / b
+```
+
+EXPLANATION:
+1. The `multiply` function was corrected to actually multiply the two input parameters.
+2. The `divide` function was corrected to actually divide the first parameter by the second, and returned the result.
+
+==========================================
+ Reviewing: sample_code\buggy_example2.py 
+==========================================
+
+BUGS FOUND:
+1. The `subtract` function should return `a - b` instead of `a + b`.
+2. The `is_even` function should return `n % 2 == 0` instead of `n % 2 == 1` to correctly identify even numbers.
+
+SUGGESTED FIX:
+```python
+def subtract(a, b):
+    return a - b
+
+def is_even(n):
+    return n % 2 == 0
+
+def find_max(numbers):
+    max_num = float('-inf')  # Initialize to negative infinity to handle empty lists
+    for n in numbers:
+        if n > max_num:
+            max_num = n
+    return max_num
+```
+
+EXPLANATION:
+1. The `subtract` function now correctly implements subtraction.
+2. The `is_even` function now correctly identifies even numbers.
+3. The `find_max` function is updated to handle edge cases, such as an empty list, by initializing `max_num` to negative infinity and updating it as necessary.

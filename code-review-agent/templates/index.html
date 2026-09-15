@@ -1,0 +1,2994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeSentinel — Agentic AI for Automated Code Review and Self-Debugging Using LLM</title>
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js">
+        window.addEventListener('DOMContentLoaded', () => {
+            initApiKeySettings();
+        });
+    
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --success-hover: #059669;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --purple: #8b5cf6;
+            --bg: #030712;
+            --card-bg: #0f172a;
+            --card-surface: #1e293b;
+            --border: #1e293b;
+            --border-subtle: #334155;
+            --border-focus: #60a5fa;
+            --text-title: #f8fafc;
+            --text-body: #cbd5e1;
+            --text-muted: #94a3b8;
+            --code-bg: #020617;
+            --radius-lg: 14px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 28px 24px 70px;
+            background: radial-gradient(1400px 850px at 50% -50px, #1e293b 0%, #0f172a 45%, #020617 100%) fixed;
+            color: var(--text-body);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        /* Header Navbar */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 26px;
+        }
+        .brand-block { display: flex; align-items: center; gap: 14px; }
+        .brand-icon {
+            width: 52px;
+            height: 52px;
+            background: #0f172a;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+            flex-shrink: 0;
+            padding: 0;
+        }
+        .brand-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .brand-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text-title);
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .brand-subtitle {
+            margin: 3px 0 0;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .header-badges {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .engine-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 12.5px;
+            font-weight: 600;
+            background: var(--card-surface);
+            color: #e2e8f0;
+            border: 1px solid var(--border-subtle);
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+            animation: pulse-ring 2s infinite;
+        }
+        @keyframes pulse-ring {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.25); }
+        }
+
+        /* Workspace Card */
+        .workspace-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .section-title {
+            font-size: 15.5px;
+            font-weight: 700;
+            color: var(--text-title);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mode-badge {
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .mode-single { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .mode-folder { background: rgba(139, 92, 246, 0.2); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+
+        /* Dual Upload Action Bar */
+        .upload-options-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .upload-btn {
+            background: var(--card-surface);
+            color: var(--text-title);
+            border: 1px solid var(--border-subtle);
+            padding: 10px 18px;
+            border-radius: var(--radius-md);
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .upload-btn:hover {
+            background: #27354f;
+            border-color: var(--primary);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+        .upload-btn.active-btn {
+            border-color: #38bdf8;
+            background: #0c2847;
+            color: #38bdf8;
+        }
+
+        /* Path Access Bar */
+        .path-access-container {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            margin-bottom: 18px;
+        }
+        .path-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .path-input {
+            flex: 1;
+            min-width: 280px;
+            background: var(--code-bg);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-title);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 13.5px;
+            font-family: 'Consolas', monospace;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .path-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        .btn-scan {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .btn-scan:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-1px);
+        }
+
+        /* Folder Manifest Panel */
+        .folder-manifest-panel {
+            margin-top: 14px;
+            display: none;
+            background: var(--code-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 14px;
+        }
+        .folder-manifest-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .folder-file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .folder-file-item:hover {
+            background: var(--card-surface);
+            border-color: var(--primary);
+            color: #38bdf8;
+        }
+        .folder-file-item.selected {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        /* Drag & Drop Zone */
+        #dropZone {
+            border: 2px dashed #334155;
+            border-radius: var(--radius-md);
+            padding: 18px;
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(2, 6, 23, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 13.5px;
+        }
+        #dropZone:hover, #dropZone.dragover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.06);
+            color: #60a5fa;
+        }
+        #singleFileInput, #folderInput { display: none; }
+
+        /* Code Editor */
+        .editor-wrapper {
+            position: relative;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+            background: var(--code-bg);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .editor-wrapper:focus-within {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        textarea#code {
+            width: 100%;
+            height: 180px;
+            font-family: 'Consolas', 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 13.5px;
+            line-height: 1.55;
+            padding: 14px;
+            border: none;
+            background: transparent;
+            color: #f1f5f9;
+            resize: vertical;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        /* Action Buttons */
+        .action-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        button.primary-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 11px 22px;
+            border-radius: var(--radius-md);
+            font-size: 14.5px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+        button#reviewBtn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+        }
+        button#reviewBtn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-1px);
+        }
+        button#reviewFolderBtn {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: #ffffff;
+            display: none;
+        }
+        button#reviewFolderBtn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            transform: translateY(-1px);
+        }
+        button#pdfBtn {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            display: none;
+        }
+        button#pdfBtn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            background: #334155 !important;
+            color: #64748b !important;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Stepper & Status */
+        .stepper-container {
+            margin: 22px 0 20px;
+            padding: 22px 24px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            display: none;
+        }
+        .stepper-progress-track {
+            position: relative;
+            margin: 20px 24px 28px;
+        }
+        .stepper-track-bg {
+            position: absolute;
+            top: 18px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #1e293b;
+            z-index: 1;
+            border-radius: 2px;
+        }
+        .stepper-track-fill {
+            position: absolute;
+            top: 18px;
+            left: 0;
+            height: 4px;
+            width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            z-index: 2;
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+        .stepper-nodes {
+            position: relative;
+            z-index: 3;
+            display: flex;
+            justify-content: space-between;
+        }
+        .step-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 140px;
+        }
+        .step-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: var(--card-surface);
+            border: 2px solid #334155;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+        .step-node.active .step-circle {
+            border-color: #38bdf8;
+            color: #38bdf8;
+            background: #082f49;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
+            animation: pulse-node 1.5s infinite;
+        }
+        .step-node.completed .step-circle {
+            background: var(--success);
+            border-color: var(--success);
+            color: #ffffff;
+        }
+        @keyframes pulse-node {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+        }
+        .step-title { font-size: 13px; font-weight: 700; color: var(--text-title); margin-bottom: 2px; }
+        .step-desc { font-size: 11.5px; color: var(--text-muted); line-height: 1.3; }
+
+        .live-status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 18px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #93c5fd;
+        }
+        .status-left { display: flex; align-items: center; gap: 10px; }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .timer-badge {
+            background: #0f172a;
+            border: 1px solid var(--border-subtle);
+            color: #38bdf8;
+            padding: 3px 12px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-family: monospace;
+        }
+
+        /* Code Intelligence Card */
+        .code-intel-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            margin: 18px 0;
+            display: none;
+        }
+        /* High-Density Uniform Code Intelligence Grid */
+        .intel-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 12px;
+        }
+        @media (max-width: 1024px) {
+            .intel-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 640px) {
+            .intel-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .intel-item {
+            background: var(--card-surface);
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            transition: border-color 0.2s;
+        }
+        .intel-item:hover {
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+        .intel-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+        .intel-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .intel-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            white-space: nowrap;
+        }
+        .badge-risk-low {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .badge-risk-mod {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+        .badge-risk-high {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        .intel-body-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 0;
+        }
+        .intel-body-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .intel-body-scroll::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .lib-pills-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-content: flex-start;
+        }
+        .lib-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            font-size: 11px;
+            color: #cbd5e1;
+            font-family: monospace;
+        }
+        .lib-pill i {
+            color: #38bdf8;
+            font-size: 11.5px;
+        }
+        .fn-item {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 6px;
+            padding: 5px 8px;
+            transition: background 0.15s;
+        }
+        .fn-item:hover {
+            background: rgba(30, 41, 59, 0.8);
+        }
+        .fn-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }
+        .fn-name {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #f8fafc;
+            font-family: monospace;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 145px;
+        }
+        .fn-args {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+        .fn-loc {
+            font-size: 10px;
+            color: #94a3b8;
+            font-family: monospace;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 1px 4px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .fn-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 3px;
+        }
+        .fn-cc-badge {
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .fn-cc-low {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+        .fn-cc-mod {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+        .fn-cc-high {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+        .fn-doc {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        .intel-footer {
+            margin-top: auto;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .intel-subtext {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .loc-stacked-bar {
+            height: 9px;
+            width: 100%;
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+            background: #020617;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+        }
+        .loc-bar-segment {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .loc-seg-code {
+            background: #3b82f6;
+        }
+        .loc-seg-comments {
+            background: #10b981;
+        }
+        .loc-seg-blank {
+            background: #475569;
+        }
+        .loc-mini-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 6px;
+            flex-shrink: 0;
+        }
+        .loc-mini-box {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 5px 8px;
+            display: flex;
+            flex-direction: column;
+        }
+        .loc-mini-val {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text-title);
+            line-height: 1.15;
+        }
+        .loc-mini-lbl {
+            font-size: 9.5px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            margin-top: 2px;
+        }
+        .doc-density-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10.5px;
+            font-weight: 600;
+        }
+        .doc-density-good {
+            color: #34d399;
+        }
+        .doc-density-fair {
+            color: #fbbf24;
+        }
+        .doc-density-poor {
+            color: #f87171;
+        }
+        .complexity-score-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+        .complexity-large-score {
+            font-size: 28px;
+            font-weight: 900;
+            color: #38bdf8;
+            line-height: 1;
+        }
+        .complexity-score-desc {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .complexity-score-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-title);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .complexity-score-sub {
+            font-size: 10.5px;
+            color: var(--text-muted);
+        }
+        .branches-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-bottom: 6px;
+            flex-shrink: 0;
+        }
+        .branch-pill {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 5px 3px;
+            text-align: center;
+        }
+        .branch-val {
+            font-size: 13px;
+            font-weight: 800;
+            color: #f8fafc;
+            display: block;
+            line-height: 1.1;
+        }
+        .branch-lbl {
+            font-size: 9.5px;
+            color: var(--text-muted);
+        }
+
+        /* KPI Cards */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+            display: none;
+        }
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .kpi-icon-wrap {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .kpi-num { font-size: 22px; font-weight: 800; color: var(--text-title); line-height: 1.1; }
+        .kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+        /* 4 Illustration Graphs Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin: 22px 0;
+            display: none;
+        }
+        .chart-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            padding: 18px 20px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+        }
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .chart-box h3 {
+            margin: 0;
+            color: var(--text-title);
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chart-canvas-wrap {
+            position: relative;
+            height: 220px;
+            width: 100%;
+        }
+
+        /* Results Grid */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 20px;
+            margin-top: 24px;
+        }
+        .card {
+            background: var(--card-bg);
+            padding: 20px 22px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.2s ease;
+        }
+        .card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .card-top h3 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-title);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-badge {
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .card-body {
+            font-size: 13.5px;
+            color: var(--text-body);
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 380px;
+        }
+        .card-step-1 { border-top: 4px solid var(--warning); }
+        .card-step-2 { border-top: 4px solid #3b82f6; }
+        .card-step-3 { border-top: 4px solid var(--success); }
+        .card-step-4 { border-top: 4px solid #6366f1; }
+
+        .code-box-container {
+            background: var(--code-bg);
+            color: #f1f5f9;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            font-family: 'Consolas', 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            line-height: 1.5;
+            position: relative;
+        }
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .copy-btn:hover { background: rgba(255, 255, 255, 0.25); }
+
+        .badge-confirmed {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 11.5px;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        .badge-false-alarm {
+            background: rgba(148, 163, 184, 0.15);
+            color: #94a3b8;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 11.5px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .verdict-callout {
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .verdict-pass {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .verdict-warn {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* File Tabs for Folder Mode */
+        .folder-tabs-row {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            margin-top: 18px;
+            padding-bottom: 8px;
+            display: none;
+        }
+        .file-tab-btn {
+            background: var(--card-surface);
+            color: var(--text-body);
+            border: 1px solid var(--border-subtle);
+            padding: 7px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .file-tab-btn:hover, .file-tab-btn.active {
+            background: #27354f;
+            color: #38bdf8;
+            border-color: #38bdf8;
+        }
+    
+        /* Dual Engine Selector Styling */
+        .engine-selector-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+        .engine-selector-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .engine-selector-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--text-title);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .engine-selector-hint {
+            font-size: 11.5px;
+            color: var(--text-muted);
+        }
+        .engine-toggle-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        @media (max-width: 768px) {
+            .engine-toggle-grid { grid-template-columns: 1fr; }
+        }
+        .engine-card-btn {
+            background: var(--card-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .engine-card-btn:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(30, 41, 59, 0.9);
+        }
+        .engine-card-btn.active#btnEngineOllama {
+            background: rgba(56, 189, 248, 0.08);
+            border-color: #38bdf8;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.15);
+        }
+        .engine-card-btn.active#btnEngineApiKey {
+            background: rgba(167, 139, 250, 0.08);
+            border-color: #a78bfa;
+            box-shadow: 0 0 14px rgba(167, 139, 250, 0.15);
+        }
+        .engine-btn-radio {
+            font-size: 18px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .engine-card-btn.active#btnEngineOllama .engine-btn-radio { color: #38bdf8; }
+        .engine-card-btn.active#btnEngineApiKey .engine-btn-radio { color: #a78bfa; }
+        .engine-btn-content { flex: 1; }
+        .engine-btn-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-title);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .engine-btn-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .engine-tag-badge {
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .tag-offline {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .tag-online {
+            background: rgba(167, 139, 250, 0.15);
+            color: #c4b5fd;
+            border: 1px solid rgba(167, 139, 250, 0.3);
+        }
+
+        /* API Key Panel */
+        .api-key-panel {
+            background: radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .api-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .api-panel-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .api-panel-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .api-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .api-select, .api-input {
+            background: #020617;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            font-size: 12.5px;
+            color: var(--text-title);
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+        .api-select:focus, .api-input:focus {
+            border-color: #a78bfa;
+            box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.2);
+        }
+        .api-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .api-input-wrap input {
+            padding-right: 36px;
+        }
+        .api-eye-btn {
+            position: absolute;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .api-eye-btn:hover { color: #f8fafc; }
+        .api-panel-footer {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .api-status-msg {
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .api-status-success { color: #34d399; display: inline-flex; align-items: center; gap: 4px; }
+        .api-status-error { color: #f87171; display: inline-flex; align-items: center; gap: 4px; }
+        .api-status-loading { color: #38bdf8; display: inline-flex; align-items: center; gap: 4px; }
+
+    </style>
+</head>
+<body>
+    <!-- Top Branding Header -->
+    <header class="app-header">
+        <div class="brand-block">
+            <div class="brand-icon">
+                <img src="/static/logo.png" alt="CodeSentinel Logo">
+            </div>
+            <div>
+                <h1 class="brand-title">CodeSentinel</h1>
+                <p class="brand-subtitle">Agentic AI for Automated Code Review and Self-Debugging Using LLM</p>
+            </div>
+        </div>
+        <div class="header-badges">
+            <div class="engine-pill" id="headerEnginePill">
+                <span class="pulse-dot" id="headerPulseDot"></span>
+                <span id="headerEngineText">Ollama Engine: <strong>qwen2.5-coder:1.5b</strong> (Fast &le; 25s)</span>
+            </div>
+            <div class="engine-pill" id="headerOfflinePill">
+                <i class="ti ti-shield-lock" id="headerOfflineIcon" style="color: #10b981;"></i>
+                <span id="headerOfflineText">100% Offline Air-Gapped</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Card -->
+    <div class="workspace-card">
+        <div class="card-header-row">
+            <h2 class="section-title">
+                <i class="ti ti-source-code"></i> CodeSentinel Workspace
+            </h2>
+            <div id="modeBadge" class="mode-badge mode-single">Single File Mode</div>
+        </div>
+
+        <!-- Dual Engine Selector: Option 1 (Offline Ollama) vs Option 2 (Online API Key) -->
+        <div class="engine-selector-card">
+            <div class="engine-selector-title-row">
+                <span class="engine-selector-title">
+                    <i class="ti ti-cpu"></i> Execution Engine
+                </span>
+                <span class="engine-selector-hint" id="engineModeHint">
+                    Currently configured: 100% offline via local Ollama
+                </span>
+            </div>
+            <div class="engine-toggle-grid">
+                <button type="button" class="engine-card-btn active" id="btnEngineOllama" onclick="setEngineMode('ollama')">
+                    <div class="engine-btn-radio">
+                        <i class="ti ti-circle-dot" id="radioOllamaIcon"></i>
+                    </div>
+                    <div class="engine-btn-content">
+                        <div class="engine-btn-title">
+                            <i class="ti ti-device-desktop" style="color: #38bdf8;"></i> Option 1: Offline Engine (Local Ollama)
+                        </div>
+                        <div class="engine-btn-desc">100% Private, On-Device, Air-Gapped (qwen2.5-coder:1.5b) &bull; No API Key Needed</div>
+                    </div>
+                    <span class="engine-tag-badge tag-offline"><i class="ti ti-wifi-off"></i> Offline</span>
+                </button>
+
+                <button type="button" class="engine-card-btn" id="btnEngineApiKey" onclick="setEngineMode('api_key')">
+                    <div class="engine-btn-radio">
+                        <i class="ti ti-circle" id="radioApiIcon"></i>
+                    </div>
+                    <div class="engine-btn-content">
+                        <div class="engine-btn-title">
+                            <i class="ti ti-cloud-code" style="color: #a78bfa;"></i> Option 2: Online Engine (Cloud API Key)
+                        </div>
+                        <div class="engine-btn-desc">Google Gemini, OpenAI GPT-4o, Groq Llama 3.3, Anthropic Claude &bull; Bring Your Key</div>
+                    </div>
+                    <span class="engine-tag-badge tag-online"><i class="ti ti-cloud"></i> Online Cloud</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Cloud API Key Configuration Drawer -->
+        <div class="api-key-panel" id="apiKeyPanel" style="display: none;">
+            <div class="api-panel-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="ti ti-key" style="color: #a78bfa; font-size: 18px;"></i>
+                    <span style="font-size: 13.5px; font-weight: 700; color: #f8fafc;">Cloud AI Provider Configuration</span>
+                </div>
+                <div style="font-size: 11.5px; color: #94a3b8; display: flex; align-items: center; gap: 5px;">
+                    <i class="ti ti-lock" style="color: #10b981;"></i> Stored in your local browser only &bull; Never persisted to disk
+                </div>
+            </div>
+
+            <div class="api-panel-grid">
+                <div class="api-panel-field" style="flex: 1; min-width: 220px;">
+                    <label class="api-label"><i class="ti ti-sparkles" style="color: #a78bfa;"></i> AI Provider</label>
+                    <select id="apiProviderSelect" class="api-select" onchange="onProviderChange()">
+                        <option value="gemini" selected>Google Gemini (Recommended - Fast & Free Quota)</option>
+                        <option value="openai">OpenAI (GPT-4o Mini / GPT-4o)</option>
+                        <option value="groq">Groq Cloud (Free & Ultra-Fast Llama 3.3)</option>
+                        <option value="anthropic">Anthropic Claude (Claude 3.5)</option>
+                        <option value="custom">Custom (OpenAI-Compatible Endpoint)</option>
+                    </select>
+                </div>
+
+                <div class="api-panel-field" style="flex: 2; min-width: 280px;">
+                    <label class="api-label"><i class="ti ti-key" style="color: #fbbf24;"></i> API Key</label>
+                    <div class="api-input-wrap">
+                        <input type="password" id="apiKeyInput" class="api-input" placeholder="Paste your API key here..." oninput="saveApiConfig()">
+                        <button type="button" class="api-eye-btn" onclick="toggleApiKeyVisibility()" title="Show/Hide API Key">
+                            <i class="ti ti-eye" id="apiEyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="api-panel-field" style="flex: 1; min-width: 180px;">
+                    <label class="api-label"><i class="ti ti-cpu" style="color: #38bdf8;"></i> Model Identifier</label>
+                    <input type="text" id="apiModelInput" class="api-input" placeholder="gemini-flash-latest" oninput="saveApiConfig()">
+                </div>
+
+                <div class="api-panel-field" id="apiEndpointField" style="display: none; flex: 2; min-width: 280px;">
+                    <label class="api-label"><i class="ti ti-link" style="color: #34d399;"></i> Custom Endpoint URL</label>
+                    <input type="text" id="apiEndpointInput" class="api-input" placeholder="https://api.openai.com/v1/chat/completions" oninput="saveApiConfig()">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding: 6px 10px; background: rgba(15, 23, 42, 0.6); border-radius: 6px; border: 1px dashed rgba(255, 255, 255, 0.1);">
+                <div style="font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                    <i class="ti ti-brand-google" style="color: #38bdf8;"></i>
+                    <span>Get free Gemini API key online: <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #38bdf8; text-decoration: underline; font-weight: 700;">Google AI Studio &nearr;</a> (or add to <code>.env</code>)</span>
+                </div>
+                <button type="button" class="chip-btn" onclick="loadKeyFromEnv()" style="padding: 2px 8px; font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+                    <i class="ti ti-file-text"></i> Auto-fill from .env
+                </button>
+            </div>
+
+            <div class="api-panel-footer">
+                <button type="button" class="chip-btn" id="btnTestKey" onclick="testApiKeyConnection()">
+                    <i class="ti ti-plug-connected"></i> Test API Connection
+                </button>
+                <div id="apiKeyStatusMessage" class="api-status-msg"></div>
+            </div>
+        </div>
+
+        <!-- 1. Dual Upload Buttons: Single File vs Folder Upload (Requirement) -->
+        <div class="upload-options-bar">
+            <button type="button" class="upload-btn active-btn" id="btnSingleMode" onclick="triggerSingleUpload()">
+                <i class="ti ti-file-upload"></i> Upload Single File
+            </button>
+            <button type="button" class="upload-btn" id="btnFolderMode" onclick="triggerFolderUpload()">
+                <i class="ti ti-folder-upload" style="color: #a78bfa;"></i> Upload Entire Folder
+            </button>
+            <input type="file" id="singleFileInput" accept=".py">
+            <input type="file" id="folderInput" webkitdirectory directory multiple>
+        </div>
+
+        <!-- 2. Local Path Access Bar -->
+        <div class="path-access-container">
+            <div class="card-header-row" style="margin-bottom: 6px;">
+                <span class="section-title" style="font-size: 13.5px;">
+                    <i class="ti ti-folder-search" style="color: #38bdf8;"></i> Local Folder or File Path
+                </span>
+                <span style="font-size: 12px; color: var(--text-muted);">Enter relative/absolute disk path</span>
+            </div>
+            <div class="path-input-row">
+                <input type="text" id="pathInput" class="path-input" placeholder="e.g. sample_code or sample_code/buggy_example.py" value="sample_code">
+                <button type="button" class="btn-scan" onclick="scanPath()">
+                    <i class="ti ti-scan"></i> Scan Path
+                </button>
+            </div>
+            <div class="quick-actions" style="margin-top: 10px;">
+                <span style="font-size: 12px; color: var(--text-muted);">Shortcuts:</span>
+                <button type="button" class="chip-btn" onclick="setPathAndScan('sample_code')">
+                    <i class="ti ti-folder"></i> sample_code folder
+                </button>
+                <button type="button" class="chip-btn" onclick="setPathAndScan('sample_code/buggy_example.py')">
+                    <i class="ti ti-file-code"></i> buggy_example.py
+                </button>
+                <button type="button" class="chip-btn" onclick="setPathAndScan('sample_code/buggy_example2.py')">
+                    <i class="ti ti-file-code"></i> buggy_example2.py
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. Folder Manifest Drawer (Visible when a folder is loaded) -->
+        <div class="folder-manifest-panel" id="folderManifestPanel">
+            <div class="folder-manifest-header">
+                <span style="font-size: 13.5px; font-weight: 700; color: #a78bfa;">
+                    <i class="ti ti-folder-check"></i> Folder Manifest (<span id="manifestCount">0</span> Python files found)
+                </span>
+                <span style="font-size: 12px; color: var(--text-muted);" id="manifestFolderName">sample_code</span>
+            </div>
+            <div id="manifestFileList" style="max-height: 180px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- 4. Drag & Drop Zone -->
+        <div id="dropZone">
+            <i class="ti ti-cloud-upload"></i>
+            <span id="dropZoneLabel">Drag & drop a <code>.py</code> file or an entire folder here, or click to browse</span>
+        </div>
+
+        <!-- 5. Code Editor -->
+        <div class="card-header-row" style="margin-top: 14px; margin-bottom: 8px;">
+            <span class="section-title" style="font-size: 14px;">
+                <i class="ti ti-code"></i> <span id="editorFileTitle">Active Python Source</span>
+            </span>
+            <div class="quick-actions">
+                <button type="button" class="chip-btn" onclick="clearCode()">
+                    <i class="ti ti-trash"></i> Clear
+                </button>
+            </div>
+        </div>
+        <div class="editor-wrapper">
+            <textarea id="code" spellcheck="false" placeholder="Paste your Python source code here or upload/scan a file or folder above..."></textarea>
+        </div>
+
+        <!-- 6. Action Execution Bar -->
+        <div class="action-bar">
+            <button class="primary-btn" id="reviewBtn" onclick="reviewSingleCode()">
+                <i class="ti ti-player-play"></i> Run Agent Review (&le; 25s)
+            </button>
+            <button class="primary-btn" id="reviewFolderBtn" onclick="reviewEntireFolder()">
+                <i class="ti ti-folders"></i> Review Entire Folder (Batch Audit)
+            </button>
+            <button class="primary-btn" id="pdfBtn" onclick="downloadPDF()">
+                <i class="ti ti-file-download"></i> Download Comprehensive PDF Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Instant Code Structure Intelligence Card -->
+    <div class="code-intel-card" id="codeIntelCard">
+        <div class="card-header-row" style="margin-bottom: 4px;">
+            <h3 class="section-title" style="font-size: 13.5px; color: #38bdf8;">
+                <i class="ti ti-binary-tree"></i> Codebase Structure & Usage Intelligence (Instant AST Audit)
+            </h3>
+            <span style="font-size: 11.5px; color: var(--text-muted);">Computed in 0.01s via AST</span>
+        </div>
+        <div class="intel-grid">
+            <!-- Card 1: Imported Libraries & Ecosystem -->
+            <div class="intel-item">
+                <div class="intel-header-row">
+                    <div class="intel-label"><i class="ti ti-packages"></i> Imported Libraries</div>
+                    <span class="intel-badge" id="intelImportsCount">0 packages</span>
+                </div>
+                <div class="intel-body-scroll" id="intelImportsList">
+                    <span class="lib-pill"><i class="ti ti-package"></i> Built-in primitives only</span>
+                </div>
+                <div class="intel-footer" id="intelImportsSummary">
+                    <span class="intel-subtext"><i class="ti ti-check" style="color:#34d399"></i> Clean namespace</span>
+                    <span class="intel-subtext">No external libs</span>
+                </div>
+            </div>
+
+            <!-- Card 2: Functions & Routines Architecture -->
+            <div class="intel-item">
+                <div class="intel-header-row">
+                    <div class="intel-label"><i class="ti ti-code-circle-2"></i> Functions & Methods</div>
+                    <span class="intel-badge" id="intelFunctionsCount">0 routines</span>
+                </div>
+                <div class="intel-body-scroll" id="intelFunctionsList">
+                    <div style="color: var(--text-muted); font-size: 11.5px; padding-top: 15px; text-align: center;">Script level execution (0 def statements)</div>
+                </div>
+                <div class="intel-footer" id="intelFunctionsSummary">
+                    <span class="intel-subtext">Classes: <b style="color:#f8fafc" id="intelClassesCount">0</b></span>
+                    <span class="intel-subtext">Avg CC: <b style="color:#38bdf8" id="intelAvgCC">1.0</b></span>
+                </div>
+            </div>
+
+            <!-- Card 3: Lines of Code & Density Composition -->
+            <div class="intel-item">
+                <div class="intel-header-row">
+                    <div class="intel-label"><i class="ti ti-file-lines"></i> Lines of Code (LOC)</div>
+                    <span class="intel-badge" id="intelTotalLocBadge">0 Total LOC</span>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div class="loc-stacked-bar" title="Code (blue) / Comments (green) / Blank (gray)">
+                            <div class="loc-bar-segment loc-seg-code" id="locBarCode" style="width: 70%;"></div>
+                            <div class="loc-bar-segment loc-seg-comments" id="locBarComments" style="width: 18%;"></div>
+                            <div class="loc-bar-segment loc-seg-blank" id="locBarBlank" style="width: 12%;"></div>
+                        </div>
+                        <div class="loc-mini-grid">
+                            <div class="loc-mini-box">
+                                <span class="loc-mini-val" id="locCodeVal">0</span>
+                                <span class="loc-mini-lbl"><i class="ti ti-code"></i> Code</span>
+                            </div>
+                            <div class="loc-mini-box">
+                                <span class="loc-mini-val" id="locCommentsVal">0</span>
+                                <span class="loc-mini-lbl"><i class="ti ti-message-2"></i> Comments</span>
+                            </div>
+                            <div class="loc-mini-box">
+                                <span class="loc-mini-val" id="locBlankVal">0</span>
+                                <span class="loc-mini-lbl"><i class="ti ti-space"></i> Blank</span>
+                            </div>
+                            <div class="loc-mini-box">
+                                <span class="loc-mini-val" id="locRatioVal">0%</span>
+                                <span class="loc-mini-lbl"><i class="ti ti-percentage"></i> Ratio</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="intel-footer" id="intelDocDensity">
+                    <span class="doc-density-tag doc-density-good"><i class="ti ti-shield-check"></i> Standard Density</span>
+                </div>
+            </div>
+
+            <!-- Card 4: Cyclomatic Complexity & Maintainability -->
+            <div class="intel-item">
+                <div class="intel-header-row">
+                    <div class="intel-label"><i class="ti ti-activity"></i> Cyclomatic Complexity</div>
+                    <span class="intel-badge badge-risk-low" id="intelRiskBadge">Low Risk</span>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div class="complexity-score-row">
+                            <div class="complexity-large-score" id="intelComplexityScore">1</div>
+                            <div class="complexity-score-desc">
+                                <div class="complexity-score-label" id="intelComplexityLabel">Low Complexity</div>
+                                <div class="complexity-score-sub" id="intelComplexitySub">Linear execution flow</div>
+                            </div>
+                        </div>
+                        <div class="branches-grid">
+                            <div class="branch-pill">
+                                <span class="branch-val" id="branchIfs">0</span>
+                                <span class="branch-lbl">if / elif</span>
+                            </div>
+                            <div class="branch-pill">
+                                <span class="branch-val" id="branchLoops">0</span>
+                                <span class="branch-lbl">loops</span>
+                            </div>
+                            <div class="branch-pill">
+                                <span class="branch-val" id="branchTries">0</span>
+                                <span class="branch-lbl">try / except</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="intel-footer">
+                    <span class="intel-subtext" id="intelComplexityAdvice" style="font-size: 10px;">Linear execution paths. Minimal branching risk.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stepper & Live Status -->
+    <div class="stepper-container" id="stepperContainer">
+        <div class="card-header-row" style="margin-bottom: 8px;">
+            <h3 class="section-title" style="font-size: 14px;">
+                <i class="ti ti-progress"></i> Agentic Reasoning Pipeline
+            </h3>
+            <span style="font-size: 12px; color: var(--text-muted);" id="stepperSubText">Sub-30s Target Inference</span>
+        </div>
+
+        <div class="stepper-progress-track">
+            <div class="stepper-track-bg"></div>
+            <div class="stepper-track-fill" id="stepperFill"></div>
+            <div class="stepper-nodes">
+                <div class="step-node pending" id="node1">
+                    <div class="step-circle" id="circle1"><i class="ti ti-bug"></i></div>
+                    <div class="step-title">1. Detection</div>
+                    <div class="step-desc">Suspected Bug Scan</div>
+                </div>
+                <div class="step-node pending" id="node2">
+                    <div class="step-circle" id="circle2"><i class="ti ti-shield-check"></i></div>
+                    <div class="step-title">2. Verification</div>
+                    <div class="step-desc">Filter False Alarms</div>
+                </div>
+                <div class="step-node pending" id="node3">
+                    <div class="step-circle" id="circle3"><i class="ti ti-code"></i></div>
+                    <div class="step-title">3. Fix Synthesis</div>
+                    <div class="step-desc">Generate Patch Code</div>
+                </div>
+                <div class="step-node pending" id="node4">
+                    <div class="step-circle" id="circle4"><i class="ti ti-circle-check"></i></div>
+                    <div class="step-title">4. Validation</div>
+                    <div class="step-desc">Double-Check Correctness</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="live-status-bar" id="liveStatusBar">
+            <div class="status-left">
+                <i class="ti ti-loader-2 spin" id="statusSpinner"></i>
+                <span id="statusText">Initializing agent pipeline...</span>
+            </div>
+            <div class="timer-badge" id="elapsedTimer">0.0s</div>
+        </div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-row" id="kpiRow">
+        <div class="kpi-card">
+            <div class="kpi-icon-wrap" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">
+                <i class="ti ti-alert-triangle"></i>
+            </div>
+            <div>
+                <div class="kpi-num" id="kpiConfirmed">0</div>
+                <div class="kpi-label" id="kpiConfirmedLabel">Confirmed Real Bugs</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon-wrap" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8;">
+                <i class="ti ti-shield-x"></i>
+            </div>
+            <div>
+                <div class="kpi-num" id="kpiFalseAlarms">0</div>
+                <div class="kpi-label" id="kpiFalseAlarmsLabel">False Alarms Filtered</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon-wrap" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">
+                <i class="ti ti-cpu"></i>
+            </div>
+            <div>
+                <div class="kpi-num" id="kpiStages">4 / 4</div>
+                <div class="kpi-label" id="kpiStagesLabel">Reasoning Stages</div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.15); color: #34d399;" id="kpiVerdictIcon">
+                <i class="ti ti-checkbox"></i>
+            </div>
+            <div>
+                <div class="kpi-num" style="font-size: 16px;" id="kpiVerdict">Analyzing...</div>
+                <div class="kpi-label" id="kpiVerdictLabel">Audit Status</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4 Illustration Graphs -->
+    <div class="charts-grid" id="chartGrid">
+        <div class="chart-box">
+            <div class="chart-header">
+                <h3><i class="ti ti-chart-bar" style="color: #3b82f6;"></i> 1. Confirmed vs False Alarms</h3>
+                <span class="card-badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">Noise Ratio</span>
+            </div>
+            <div class="chart-canvas-wrap"><canvas id="bugChart"></canvas></div>
+        </div>
+        <div class="chart-box">
+            <div class="chart-header">
+                <h3><i class="ti ti-chart-pie" style="color: #8b5cf6;"></i> 2. Defect Classification</h3>
+                <span class="card-badge" style="background: rgba(139, 92, 246, 0.2); color: #a78bfa;">Category</span>
+            </div>
+            <div class="chart-canvas-wrap"><canvas id="categoryChart"></canvas></div>
+        </div>
+        <div class="chart-box">
+            <div class="chart-header">
+                <h3><i class="ti ti-chart-histogram" style="color: #f59e0b;"></i> 3. Defect Severity & Risk Matrix</h3>
+                <span class="card-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">Impact Level</span>
+            </div>
+            <div class="chart-canvas-wrap"><canvas id="severityChart"></canvas></div>
+        </div>
+        <div class="chart-box">
+            <div class="chart-header">
+                <h3><i class="ti ti-chart-radar" style="color: #10b981;"></i> 4. Code Quality & Health Index</h3>
+                <span class="card-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">Health Score</span>
+            </div>
+            <div class="chart-canvas-wrap"><canvas id="qualityChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- Folder File Tabs (when reviewing multiple files) -->
+    <div class="folder-tabs-row" id="folderTabsRow"></div>
+
+    <!-- Results Display Grid -->
+    <div class="steps-grid" id="results"></div>
+
+    <script>
+
+        // ==========================================
+        // DUAL ENGINE (OFFLINE OLLAMA vs CLOUD API KEY)
+        // ==========================================
+        let currentEngineMode = localStorage.getItem("codesentinel_engine_mode") || "ollama";
+
+        function setEngineMode(mode) {
+            currentEngineMode = mode;
+            localStorage.setItem("codesentinel_engine_mode", mode);
+
+            const btnOllama = document.getElementById("btnEngineOllama");
+            const btnApiKey = document.getElementById("btnEngineApiKey");
+            const radioOllama = document.getElementById("radioOllamaIcon");
+            const radioApi = document.getElementById("radioApiIcon");
+            const apiPanel = document.getElementById("apiKeyPanel");
+            const hint = document.getElementById("engineModeHint");
+
+            if (mode === "ollama") {
+                if (btnOllama) btnOllama.classList.add("active");
+                if (btnApiKey) btnApiKey.classList.remove("active");
+                if (radioOllama) radioOllama.className = "ti ti-circle-dot";
+                if (radioApi) radioApi.className = "ti ti-circle";
+                if (apiPanel) apiPanel.style.display = "none";
+                if (hint) hint.innerText = "Currently configured: 100% offline via local Ollama";
+
+                // Update Header Pill
+                const pulse = document.getElementById("headerPulseDot");
+                if (pulse) { pulse.style.background = "#10b981"; pulse.style.boxShadow = "0 0 8px #10b981"; }
+                const engTxt = document.getElementById("headerEngineText");
+                if (engTxt) engTxt.innerHTML = 'Ollama Engine: <strong>qwen2.5-coder:1.5b</strong> (Fast &le; 25s)';
+                const offIcon = document.getElementById("headerOfflineIcon");
+                if (offIcon) { offIcon.className = "ti ti-shield-lock"; offIcon.style.color = "#10b981"; }
+                const offTxt = document.getElementById("headerOfflineText");
+                if (offTxt) offTxt.innerText = "100% Offline Air-Gapped";
+                const rBtn = document.getElementById("reviewBtn");
+                if (rBtn) rBtn.innerHTML = '<i class="ti ti-player-play"></i> Run Agent Review (&le; 25s)';
+            } else {
+                if (btnOllama) btnOllama.classList.remove("active");
+                if (btnApiKey) btnApiKey.classList.add("active");
+                if (radioOllama) radioOllama.className = "ti ti-circle";
+                if (radioApi) radioApi.className = "ti ti-circle-dot";
+                if (apiPanel) apiPanel.style.display = "block";
+
+                const provSelect = document.getElementById("apiProviderSelect");
+                const provName = provSelect ? provSelect.options[provSelect.selectedIndex].text.split(" ")[0] : "Gemini";
+                if (hint) hint.innerText = `Currently configured: Cloud AI (${provName}) with API Key`;
+
+                // Update Header Pill
+                const modelInput = document.getElementById("apiModelInput");
+                const model = (modelInput ? modelInput.value.trim() : "") || "gemini-flash-latest";
+                const pulse = document.getElementById("headerPulseDot");
+                if (pulse) { pulse.style.background = "#a78bfa"; pulse.style.boxShadow = "0 0 8px #a78bfa"; }
+                const engTxt = document.getElementById("headerEngineText");
+                if (engTxt) engTxt.innerHTML = `Cloud Engine: <strong>${provName} (${model})</strong>`;
+                const offIcon = document.getElementById("headerOfflineIcon");
+                if (offIcon) { offIcon.className = "ti ti-cloud"; offIcon.style.color = "#a78bfa"; }
+                const offTxt = document.getElementById("headerOfflineText");
+                if (offTxt) offTxt.innerText = "Online Cloud AI";
+                const rBtn = document.getElementById("reviewBtn");
+                if (rBtn) rBtn.innerHTML = '<i class="ti ti-sparkles"></i> Run Cloud Review';
+            }
+        }
+
+        async function loadKeyFromEnv(isSilent = false) {
+            try {
+                const res = await fetch("/api/env-config");
+                const data = await res.json();
+                const keyInput = document.getElementById("apiKeyInput");
+                const provSelect = document.getElementById("apiProviderSelect");
+                const msgEl = document.getElementById("apiKeyStatusMessage");
+
+                if (data.gemini && (!keyInput.value.trim() || provSelect.value === "gemini")) {
+                    keyInput.value = data.gemini;
+                    provSelect.value = "gemini";
+                    saveApiConfig();
+                    if (!isSilent && msgEl) {
+                        msgEl.className = "api-status-msg api-status-success";
+                        msgEl.innerHTML = '<i class="ti ti-circle-check"></i> Loaded Gemini key from .env!';
+                    }
+                    return true;
+                } else if (data.openai && provSelect.value === "openai") {
+                    keyInput.value = data.openai;
+                    saveApiConfig();
+                    if (!isSilent && msgEl) {
+                        msgEl.className = "api-status-msg api-status-success";
+                        msgEl.innerHTML = '<i class="ti ti-circle-check"></i> Loaded OpenAI key from .env!';
+                    }
+                    return true;
+                } else if (!isSilent && msgEl) {
+                    msgEl.className = "api-status-msg api-status-error";
+                    msgEl.innerHTML = '<i class="ti ti-info-circle"></i> No key found in .env file. Add GEMINI_API_KEY=... to your .env file or paste it directly above.';
+                }
+            } catch (e) {
+                if (!isSilent) console.error("Error loading key from env:", e);
+            }
+            return false;
+        }
+
+        async function initApiKeySettings() {
+            const savedProv = localStorage.getItem("codesentinel_api_provider") || "gemini";
+            const savedKey = localStorage.getItem("codesentinel_api_key") || "";
+            const savedModel = localStorage.getItem("codesentinel_api_model") || "gemini-flash-latest";
+            const savedEndpoint = localStorage.getItem("codesentinel_api_endpoint") || "";
+
+            const provSelect = document.getElementById("apiProviderSelect");
+            if (provSelect) provSelect.value = savedProv;
+            const keyInput = document.getElementById("apiKeyInput");
+            if (keyInput) keyInput.value = savedKey;
+            const modelInput = document.getElementById("apiModelInput");
+            if (modelInput) {
+                modelInput.value = savedModel === "gemini-1.5-flash" ? "gemini-flash-latest" : savedModel;
+                modelInput.placeholder = "gemini-flash-latest";
+            }
+            const endInput = document.getElementById("apiEndpointInput");
+            if (endInput) endInput.value = savedEndpoint;
+
+            const endpointField = document.getElementById("apiEndpointField");
+            if (endpointField) endpointField.style.display = savedProv === "custom" ? "flex" : "none";
+
+            // If no key in localStorage, auto-populate silently from .env
+            if (!savedKey) {
+                await loadKeyFromEnv(true);
+            }
+
+            setEngineMode(currentEngineMode);
+        }
+
+        function onProviderChange() {
+            const prov = document.getElementById("apiProviderSelect").value;
+            const modelInput = document.getElementById("apiModelInput");
+            const endpointField = document.getElementById("apiEndpointField");
+
+            const defaultModels = {
+                "gemini": "gemini-flash-latest",
+                "openai": "gpt-4o-mini",
+                "groq": "llama-3.3-70b-versatile",
+                "anthropic": "claude-3-5-haiku-20241022",
+                "custom": "default"
+            };
+
+            modelInput.value = defaultModels[prov] || "gemini-flash-latest";
+            modelInput.placeholder = defaultModels[prov] || "model-name";
+            if (endpointField) endpointField.style.display = prov === "custom" ? "flex" : "none";
+
+            saveApiConfig();
+            setEngineMode("api_key");
+        }
+
+        function saveApiConfig() {
+            const provSelect = document.getElementById("apiProviderSelect");
+            const keyInput = document.getElementById("apiKeyInput");
+            const modelInput = document.getElementById("apiModelInput");
+            const endInput = document.getElementById("apiEndpointInput");
+
+            const prov = provSelect ? provSelect.value : "gemini";
+            const key = keyInput ? keyInput.value.trim() : "";
+            const model = modelInput ? modelInput.value.trim() : "gemini-flash-latest";
+            const endpoint = endInput ? endInput.value.trim() : "";
+
+            localStorage.setItem("codesentinel_api_provider", prov);
+            localStorage.setItem("codesentinel_api_key", key);
+            localStorage.setItem("codesentinel_api_model", model);
+            localStorage.setItem("codesentinel_api_endpoint", endpoint);
+
+            if (currentEngineMode === "api_key") {
+                const provName = provSelect ? provSelect.options[provSelect.selectedIndex].text.split(" ")[0] : "Cloud";
+                const engTxt = document.getElementById("headerEngineText");
+                if (engTxt) engTxt.innerHTML = `Cloud Engine: <strong>${provName} (${model || 'Online'})</strong>`;
+            }
+        }
+
+        function toggleApiKeyVisibility() {
+            const keyInput = document.getElementById("apiKeyInput");
+            const eyeIcon = document.getElementById("apiEyeIcon");
+            if (!keyInput) return;
+            if (keyInput.type === "password") {
+                keyInput.type = "text";
+                if (eyeIcon) eyeIcon.className = "ti ti-eye-off";
+            } else {
+                keyInput.type = "password";
+                if (eyeIcon) eyeIcon.className = "ti ti-eye";
+            }
+        }
+
+        async function testApiKeyConnection() {
+            const keyInput = document.getElementById("apiKeyInput");
+            let key = keyInput ? keyInput.value.trim() : "";
+            const provSelect = document.getElementById("apiProviderSelect");
+            const prov = provSelect ? provSelect.value : "gemini";
+            const modelInput = document.getElementById("apiModelInput");
+            const model = (modelInput ? modelInput.value.trim() : "") || (prov === "gemini" ? "gemini-flash-latest" : "");
+            const endInput = document.getElementById("apiEndpointInput");
+            const endpoint = endInput ? endInput.value.trim() : "";
+            const msgEl = document.getElementById("apiKeyStatusMessage");
+            const btn = document.getElementById("btnTestKey");
+
+            // If empty, try to auto-fetch from .env first
+            if (!key) {
+                const loaded = await loadKeyFromEnv(true);
+                key = keyInput ? keyInput.value.trim() : "";
+            }
+
+            if (!key) {
+                if (msgEl) {
+                    msgEl.className = "api-status-msg api-status-error";
+                    msgEl.innerHTML = '<i class="ti ti-alert-circle"></i> Please enter an API key or set GEMINI_API_KEY in .env.';
+                }
+                return;
+            }
+
+            if (btn) btn.disabled = true;
+            if (msgEl) {
+                msgEl.className = "api-status-msg api-status-loading";
+                msgEl.innerHTML = '<i class="ti ti-loader-2 spin"></i> Testing connection to cloud provider...';
+            }
+
+            try {
+                const res = await fetch("/test-api-key", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        engine_mode: "api_key",
+                        api_provider: prov,
+                        api_key: key,
+                        api_model: model,
+                        api_endpoint: endpoint
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (msgEl) {
+                        msgEl.className = "api-status-msg api-status-success";
+                        msgEl.innerHTML = `<i class="ti ti-circle-check"></i> ${escapeHtml(data.message)}`;
+                    }
+                } else {
+                    if (msgEl) {
+                        msgEl.className = "api-status-msg api-status-error";
+                        msgEl.innerHTML = `<i class="ti ti-alert-triangle"></i> ${escapeHtml(data.message)}`;
+                    }
+                }
+            } catch (e) {
+                if (msgEl) {
+                    msgEl.className = "api-status-msg api-status-error";
+                    msgEl.innerHTML = `<i class="ti ti-wifi-off"></i> Connection error: ${escapeHtml(e.message)}`;
+                }
+            }
+            if (btn) btn.disabled = false;
+        }
+
+        function getActiveEnginePayload() {
+            const provSelect = document.getElementById("apiProviderSelect");
+            const keyInput = document.getElementById("apiKeyInput");
+            const modelInput = document.getElementById("apiModelInput");
+            const endInput = document.getElementById("apiEndpointInput");
+
+            return {
+                engine_mode: currentEngineMode,
+                api_provider: provSelect ? provSelect.value : "gemini",
+                api_key: keyInput ? keyInput.value.trim() : "",
+                api_model: (modelInput ? modelInput.value.trim() : "") || "gemini-flash-latest",
+                api_endpoint: endInput ? endInput.value.trim() : ""
+            };
+        }
+
+
+        let currentMode = "single"; // "single" or "folder"
+        let loadedFolderFiles = []; // array of {filename, rel_path, content}
+        let selectedFileIndex = 0;
+
+        let bugChartInstance = null;
+        let categoryChartInstance = null;
+        let severityChartInstance = null;
+        let qualityChartInstance = null;
+
+        let singleStepData = {};
+        let singleCodeStructure = {};
+        let folderBatchResults = [];
+        let folderAggregateData = {};
+
+        let timerInterval = null;
+        let startTime = null;
+
+        const codeBox = document.getElementById("code");
+        const dropZone = document.getElementById("dropZone");
+        const singleFileInput = document.getElementById("singleFileInput");
+        const folderInput = document.getElementById("folderInput");
+
+        // ---- Mode Switching & Upload Handlers ----
+        function triggerSingleUpload() {
+            setMode("single");
+            singleFileInput.click();
+        }
+
+        function triggerFolderUpload() {
+            setMode("folder");
+            folderInput.click();
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            const mb = document.getElementById("modeBadge");
+            const btnS = document.getElementById("btnSingleMode");
+            const btnF = document.getElementById("btnFolderMode");
+            const btnRevFolder = document.getElementById("reviewFolderBtn");
+
+            if (mode === "folder") {
+                mb.innerText = "Folder Audit Mode";
+                mb.className = "mode-badge mode-folder";
+                btnF.classList.add("active-btn");
+                btnS.classList.remove("active-btn");
+                btnRevFolder.style.display = "inline-flex";
+            } else {
+                mb.innerText = "Single File Mode";
+                mb.className = "mode-badge mode-single";
+                btnS.classList.add("active-btn");
+                btnF.classList.remove("active-btn");
+                btnRevFolder.style.display = "none";
+            }
+        }
+
+        singleFileInput.addEventListener("change", (e) => {
+            const f = e.target.files[0];
+            if (f) loadSingleUploadedFile(f);
+        });
+
+        folderInput.addEventListener("change", (e) => {
+            const files = Array.from(e.target.files).filter(f => f.name.endsWith(".py"));
+            if (files.length === 0) {
+                alert("No Python (.py) files found in selected folder.");
+                return;
+            }
+            loadUploadedFolder(files);
+        });
+
+        function loadSingleUploadedFile(file) {
+            setMode("single");
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                codeBox.value = e.target.result;
+                document.getElementById("editorFileTitle").innerText = file.name;
+                document.getElementById("dropZoneLabel").innerHTML = `<i class="ti ti-circle-check" style="color:#10b981"></i> Loaded file: <strong>${file.name}</strong> (${(file.size/1024).toFixed(1)} KB)`;
+                document.getElementById("folderManifestPanel").style.display = "none";
+            };
+            reader.readAsText(file);
+        }
+
+        function loadUploadedFolder(files) {
+            setMode("folder");
+            loadedFolderFiles = [];
+            let readCount = 0;
+
+            files.forEach(f => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const rel_path = f.webkitRelativePath || f.name;
+                    loadedFolderFiles.push({
+                        filename: f.name,
+                        rel_path: rel_path,
+                        content: e.target.result,
+                        size_kb: (f.size / 1024).toFixed(1)
+                    });
+                    readCount++;
+                    if (readCount === files.length) {
+                        displayFolderManifest("Uploaded Folder", loadedFolderFiles);
+                    }
+                };
+                reader.readAsText(f);
+            });
+        }
+
+        function displayFolderManifest(folderTitle, fileList) {
+            const panel = document.getElementById("folderManifestPanel");
+            const countEl = document.getElementById("manifestCount");
+            const titleEl = document.getElementById("manifestFolderName");
+            const listEl = document.getElementById("manifestFileList");
+
+            panel.style.display = "block";
+            countEl.innerText = fileList.length;
+            titleEl.innerText = folderTitle;
+
+            let html = "";
+            fileList.forEach((f, idx) => {
+                const isFirst = idx === 0 ? "selected" : "";
+                html += `
+                    <div class="folder-file-item ${isFirst}" id="folderItem${idx}" onclick="selectFolderFile(${idx})">
+                        <span><i class="ti ti-file-code" style="color: #3b82f6; margin-right: 6px;"></i><strong>${f.filename}</strong> (${f.rel_path})</span>
+                        <span style="font-size: 11.5px; color: var(--text-muted); font-family: monospace;">${f.size_kb} KB</span>
+                    </div>
+                `;
+            });
+            listEl.innerHTML = html;
+
+            if (fileList.length > 0) {
+                selectFolderFile(0);
+            }
+            document.getElementById("dropZoneLabel").innerHTML = `<i class="ti ti-folder-check" style="color:#a78bfa"></i> Loaded folder: <strong>${folderTitle}</strong> (${fileList.length} Python files ready)`;
+        }
+
+        function selectFolderFile(idx) {
+            selectedFileIndex = idx;
+            loadedFolderFiles.forEach((_, i) => {
+                const el = document.getElementById(`folderItem${i}`);
+                if (el) el.classList.toggle("selected", i === idx);
+            });
+            const f = loadedFolderFiles[idx];
+            if (f) {
+                codeBox.value = f.content;
+                document.getElementById("editorFileTitle").innerText = `${f.filename} (${f.rel_path})`;
+            }
+        }
+
+        // ---- Local Path Scanning ----
+        function setPathAndScan(p) {
+            document.getElementById("pathInput").value = p;
+            scanPath();
+        }
+
+        async function scanPath() {
+            const p = document.getElementById("pathInput").value.trim();
+            if (!p) {
+                alert("Please enter a folder or file path.");
+                return;
+            }
+
+            try {
+                const res = await fetch("/api/scan-path", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ path: p })
+                });
+                const data = await res.json();
+
+                if (data.status !== "ok") {
+                    alert(data.message);
+                    return;
+                }
+
+                if (data.type === "directory") {
+                    setMode("folder");
+                    loadedFolderFiles = [];
+                    for (const f of data.files) {
+                        const loadRes = await fetch("/api/load-file", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ filepath: f.full_path })
+                        });
+                        const fileData = await loadRes.json();
+                        if (fileData.status === "ok") {
+                            loadedFolderFiles.push({
+                                filename: f.name,
+                                rel_path: f.rel_path,
+                                content: fileData.content,
+                                size_kb: f.size_kb
+                            });
+                        }
+                    }
+                    displayFolderManifest(data.path, loadedFolderFiles);
+                } else if (data.type === "file") {
+                    setMode("single");
+                    codeBox.value = data.content;
+                    document.getElementById("editorFileTitle").innerText = data.filename;
+                    document.getElementById("dropZoneLabel").innerHTML = `<i class="ti ti-circle-check" style="color:#10b981"></i> Loaded: <strong>${data.filename}</strong> (${data.size_kb} KB)`;
+                    document.getElementById("folderManifestPanel").style.display = "none";
+                    if (data.structure) renderCodeIntelligence(data.structure);
+                }
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        }
+
+        function clearCode() {
+            codeBox.value = "";
+            document.getElementById("dropZoneLabel").innerHTML = `Drag & drop a <code>.py</code> file or an entire folder here, or click to browse`;
+            document.getElementById("codeIntelCard").style.display = "none";
+        }
+
+        function cleanMarkdownText(text, isCode = false) {
+            if (!text) return "";
+            if (isCode) {
+                const lines = text.split("\n");
+                return lines.filter(l => !l.trim().startsWith("```")).join("\n").trim();
+            }
+            return text
+                .replace(/^\s*#+\s*/gm, "")
+                .replace(/\*\*([^*]+)\*\*/g, "$1")
+                .replace(/(?<!\w)\*([^*]+)\*(?!\w)/g, "$1")
+                .replace(/^\s*\*\s+/gm, "- ")
+                .replace(/`([^`]+)`/g, "$1")
+                .trim();
+        }
+
+        // ---- Drag & Drop Event Handlers (Supports Folders & Files) ----
+        dropZone.addEventListener("click", () => {
+            if (currentMode === "folder") folderInput.click();
+            else singleFileInput.click();
+        });
+        dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
+        dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+        dropZone.addEventListener("drop", async (e) => {
+            e.preventDefault();
+            dropZone.classList.remove("dragover");
+
+            const items = e.dataTransfer.items;
+            if (!items) return;
+
+            const droppedFiles = [];
+            async function traverseFileTree(item, path = "") {
+                if (item.isFile) {
+                    const file = await new Promise((res) => item.file(res));
+                    if (file.name.endsWith(".py")) {
+                        const content = await file.text();
+                        droppedFiles.push({
+                            filename: file.name,
+                            rel_path: path + file.name,
+                            content: content,
+                            size_kb: (file.size / 1024).toFixed(1)
+                        });
+                    }
+                } else if (item.isDirectory) {
+                    const dirReader = item.createReader();
+                    const entries = await new Promise((res) => dirReader.readEntries(res));
+                    for (const entry of entries) {
+                        await traverseFileTree(entry, path + item.name + "/");
+                    }
+                }
+            }
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i].webkitGetAsEntry();
+                if (item) await traverseFileTree(item);
+            }
+
+            if (droppedFiles.length === 1 && !droppedFiles[0].rel_path.includes("/")) {
+                setMode("single");
+                codeBox.value = droppedFiles[0].content;
+                document.getElementById("editorFileTitle").innerText = droppedFiles[0].filename;
+                document.getElementById("dropZoneLabel").innerHTML = `<i class="ti ti-circle-check" style="color:#10b981"></i> Loaded: <strong>${droppedFiles[0].filename}</strong>`;
+            } else if (droppedFiles.length > 0) {
+                setMode("folder");
+                loadedFolderFiles = droppedFiles;
+                displayFolderManifest("Dropped Folder", droppedFiles);
+            }
+        });
+
+        function renderCodeIntelligence(struct) {
+            singleCodeStructure = struct;
+            const intelCard = document.getElementById("codeIntelCard");
+            intelCard.style.display = "block";
+
+            // 1. Imports
+            const impCount = document.getElementById("intelImportsCount");
+            const impList = document.getElementById("intelImportsList");
+            const impSummary = document.getElementById("intelImportsSummary");
+            const imports = struct.imports || [];
+            impCount.innerText = `${imports.length} package${imports.length === 1 ? '' : 's'}`;
+            if (imports.length > 0) {
+                impList.innerHTML = `<div class="lib-pills-wrap">` + imports.map(imp =>
+                    `<span class="lib-pill" title="${escapeHtml(imp)}"><i class="ti ti-package"></i> ${escapeHtml(imp)}</span>`
+                ).join("") + `</div>`;
+                impSummary.innerHTML = `
+                    <span class="intel-subtext"><i class="ti ti-check" style="color:#34d399"></i> Modular namespace</span>
+                    <span class="intel-subtext">${imports.length} active imports</span>
+                `;
+            } else {
+                impList.innerHTML = `
+                    <div style="color: #94a3b8; font-size: 11.5px; padding-top: 14px; text-align: center;">
+                        <i class="ti ti-circle-check" style="color: #34d399; font-size: 22px; display: block; margin-bottom: 4px;"></i>
+                        Pure Python Primitives<br><span style="font-size: 10.5px; color: #64748b;">Zero external dependencies</span>
+                    </div>
+                `;
+                impSummary.innerHTML = `
+                    <span class="intel-subtext"><i class="ti ti-bolt" style="color:#38bdf8"></i> Self-contained script</span>
+                    <span class="intel-subtext">No 3rd-party pkgs</span>
+                `;
+            }
+
+            // 2. Functions & Classes
+            const fnCount = document.getElementById("intelFunctionsCount");
+            const fnList = document.getElementById("intelFunctionsList");
+            const functions = struct.functions || [];
+            const classes = struct.classes || [];
+            fnCount.innerText = `${functions.length} routine${functions.length === 1 ? '' : 's'}`;
+            if (functions.length > 0) {
+                fnList.innerHTML = functions.map(f => {
+                    const cc = f.complexity || 1;
+                    const ccClass = cc > 5 ? 'fn-cc-high' : (cc > 2 ? 'fn-cc-mod' : 'fn-cc-low');
+                    const argsStr = (f.args && f.args.length > 0) ? f.args.join(', ') : '';
+                    const docStr = f.doc || 'Routine declaration';
+                    return `
+                        <div class="fn-item">
+                            <div class="fn-header">
+                                <span class="fn-name" title="${escapeHtml(f.name)}(${escapeHtml(argsStr)})">${escapeHtml(f.name)}<span class="fn-args">(${escapeHtml(argsStr)})</span></span>
+                                <span class="fn-loc">L${f.line || 1}</span>
+                            </div>
+                            <div class="fn-meta">
+                                <span class="fn-cc-badge ${ccClass}">CC: ${cc}</span>
+                                <span class="fn-doc" title="${escapeHtml(docStr)}">${escapeHtml(docStr)}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            } else {
+                fnList.innerHTML = `
+                    <div style="color: #94a3b8; font-size: 11.5px; padding-top: 14px; text-align: center;">
+                        <i class="ti ti-terminal" style="color: #38bdf8; font-size: 22px; display: block; margin-bottom: 4px;"></i>
+                        Script-Level Execution<br><span style="font-size: 10.5px; color: #64748b;">No explicit def routines declared</span>
+                    </div>
+                `;
+            }
+            document.getElementById("intelClassesCount").innerText = classes.length;
+            const avgCC = (functions.length > 0) ? (functions.reduce((acc, f) => acc + (f.complexity || 1), 0) / functions.length).toFixed(1) : '1.0';
+            document.getElementById("intelAvgCC").innerText = avgCC;
+
+            // 3. Lines of Code & Composition
+            const loc = struct.loc || { total: 0, code: 0, comments: 0, blank: 0, comment_ratio: 0 };
+            document.getElementById("intelTotalLocBadge").innerText = `${loc.total} Total LOC`;
+            const totalLoc = Math.max(loc.total, 1);
+            const codePct = Math.round((loc.code / totalLoc) * 100);
+            const commPct = Math.round((loc.comments / totalLoc) * 100);
+            const blankPct = Math.max(0, 100 - codePct - commPct);
+
+            const barCode = document.getElementById("locBarCode");
+            const barComm = document.getElementById("locBarComments");
+            const barBlank = document.getElementById("locBarBlank");
+            barCode.style.width = codePct + "%";
+            barCode.title = `Executable Code: ${loc.code} lines (${codePct}%)`;
+            barComm.style.width = commPct + "%";
+            barComm.title = `Comments: ${loc.comments} lines (${commPct}%)`;
+            barBlank.style.width = blankPct + "%";
+            barBlank.title = `Blank: ${loc.blank} lines (${blankPct}%)`;
+
+            document.getElementById("locCodeVal").innerText = loc.code;
+            document.getElementById("locCommentsVal").innerText = loc.comments;
+            document.getElementById("locBlankVal").innerText = loc.blank;
+            document.getElementById("locRatioVal").innerText = loc.comment_ratio + "%";
+
+            const densityEl = document.getElementById("intelDocDensity");
+            const ratio = loc.comment_ratio;
+            if (ratio >= 20) {
+                densityEl.innerHTML = `<span class="doc-density-tag doc-density-good"><i class="ti ti-shield-check"></i> Well Documented (${ratio}%)</span>`;
+            } else if (ratio >= 8) {
+                densityEl.innerHTML = `<span class="doc-density-tag doc-density-fair"><i class="ti ti-info-circle"></i> Adequate Density (${ratio}%)</span>`;
+            } else {
+                densityEl.innerHTML = `<span class="doc-density-tag doc-density-poor"><i class="ti ti-alert-circle"></i> Sparse Comments (${ratio}%)</span>`;
+            }
+
+            // 4. Complexity & Maintainability
+            const comp = struct.complexity || { score: 1, label: "Low Complexity", risk_level: "Low", branches: { ifs: 0, loops: 0, tries: 0 } };
+            const riskBadge = document.getElementById("intelRiskBadge");
+            riskBadge.innerText = `${comp.risk_level || 'Low'} Risk`;
+            riskBadge.className = "intel-badge " + (comp.risk_level === 'High' ? 'badge-risk-high' : (comp.risk_level === 'Moderate' ? 'badge-risk-mod' : 'badge-risk-low'));
+
+            const scoreEl = document.getElementById("intelComplexityScore");
+            scoreEl.innerText = comp.score;
+            scoreEl.style.color = comp.score > 15 ? '#f87171' : (comp.score > 4 ? '#fbbf24' : '#38bdf8');
+            document.getElementById("intelComplexityLabel").innerText = comp.label;
+            document.getElementById("intelComplexitySub").innerText = comp.score <= 4 ? 'Linear execution flow' : (comp.score <= 15 ? 'Moderate branch density' : 'High branching density');
+
+            const branches = comp.branches || { ifs: 0, loops: 0, tries: 0 };
+            document.getElementById("branchIfs").innerText = branches.ifs || 0;
+            document.getElementById("branchLoops").innerText = branches.loops || 0;
+            document.getElementById("branchTries").innerText = branches.tries || 0;
+
+            const adviceEl = document.getElementById("intelComplexityAdvice");
+            if (comp.score > 15) {
+                adviceEl.innerText = "Decompose nested conditions and extract sub-functions.";
+            } else if (comp.score > 4) {
+                adviceEl.innerText = "Standard branching. Ensure adequate branch test coverage.";
+            } else {
+                adviceEl.innerText = "Clean linear execution paths. Minimal branching risk.";
+            }
+        }
+
+        function updateStepper(step, isRunning = true) {
+            const fill = document.getElementById("stepperFill");
+            fill.style.width = [0, 25, 50, 75, 100][step] + "%";
+
+            for (let i = 1; i <= 4; i++) {
+                const node = document.getElementById(`node${i}`);
+                const circle = document.getElementById(`circle${i}`);
+                node.className = "step-node";
+                if (i < step || (i === step && !isRunning)) {
+                    node.classList.add("completed");
+                    circle.innerHTML = '<i class="ti ti-check"></i>';
+                } else if (i === step && isRunning) {
+                    node.classList.add("active");
+                    circle.innerHTML = `<i class="ti ti-loader-2 spin"></i>`;
+                } else {
+                    node.classList.add("pending");
+                    circle.innerHTML = `<i class="ti ${['ti-bug', 'ti-shield-check', 'ti-code', 'ti-circle-check'][i-1]}"></i>`;
+                }
+            }
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            const timerEl = document.getElementById("elapsedTimer");
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timerEl.innerText = ((Date.now() - startTime) / 1000).toFixed(1) + "s";
+            }, 100);
+        }
+
+        function stopTimer() {
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        }
+
+        // ==========================================
+        // 1. SINGLE FILE REVIEW EXECUTION
+        // ==========================================
+        async function reviewSingleCode() {
+            const code = codeBox.value;
+            if (!code.trim()) {
+                alert("Please paste code or select a file first.");
+                return;
+            }
+
+            setMode("single");
+            const btn = document.getElementById("reviewBtn");
+            const pdfBtn = document.getElementById("pdfBtn");
+            const results = document.getElementById("results");
+            const chartGrid = document.getElementById("chartGrid");
+            const kpiRow = document.getElementById("kpiRow");
+            const stepperContainer = document.getElementById("stepperContainer");
+            const statusText = document.getElementById("statusText");
+            const statusSpinner = document.getElementById("statusSpinner");
+            const folderTabsRow = document.getElementById("folderTabsRow");
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Reviewing (&le; 25s)...';
+            pdfBtn.style.display = "none";
+            results.innerHTML = "";
+            chartGrid.style.display = "none";
+            kpiRow.style.display = "none";
+            folderTabsRow.style.display = "none";
+            stepperContainer.style.display = "block";
+            statusSpinner.style.display = "inline-block";
+
+            singleStepData = {};
+            startTimer();
+            updateStepper(1, true);
+            statusText.innerText = "Stage 1/4: Scanning code for suspected bugs & logic mismatches...";
+
+            try {
+                const engineConfig = getActiveEnginePayload();
+                if (engineConfig.engine_mode === "api_key" && !engineConfig.api_key) {
+                    alert("Please enter your API Key in the Cloud AI setup panel, or switch to Option 1 for 100% Offline Ollama.");
+                    document.getElementById("apiKeyPanel").style.display = "block";
+                    document.getElementById("apiKeyInput").focus();
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="ti ti-player-play"></i> Run Agent Review (&le; 25s)';
+                    statusSpinner.style.display = "none";
+                    statusText.innerText = "Execution cancelled: Missing Cloud API Key";
+                    return;
+                }
+
+                const res = await fetch("/review-stream", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        code: code,
+                        engine_mode: engineConfig.engine_mode,
+                        api_provider: engineConfig.api_provider,
+                        api_key: engineConfig.api_key,
+                        api_model: engineConfig.api_model,
+                        api_endpoint: engineConfig.api_endpoint
+                    })
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = "";
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    let lines = buffer.split("\n");
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        const data = JSON.parse(line);
+                        handleSingleStreamStep(data, results, statusText, statusSpinner, chartGrid, kpiRow, pdfBtn);
+                    }
+                }
+            } catch (err) {
+                statusText.innerText = "Error: " + err.message;
+                statusSpinner.style.display = "none";
+                stopTimer();
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-player-play"></i> Run Agent Review (&le; 25s)';
+        }
+
+        function handleSingleStreamStep(data, results, statusText, statusSpinner, chartGrid, kpiRow, pdfBtn) {
+            if (data.step === 0 && data.structure) {
+                renderCodeIntelligence(data.structure);
+                return;
+            }
+
+            const card = document.createElement("div");
+            card.className = `card card-step-${data.step}`;
+            const stepTitles = { 1: "Suspected Bug Detection", 2: "Self-Verification & Noise Reduction", 3: "Synthesized Code Patch", 4: "Patch Validation & Double-Check" };
+            const stepIcons = { 1: "ti-bug", 2: "ti-shield-check", 3: "ti-code", 4: "ti-circle-check" };
+            const badgeStyles = { 1: "background: rgba(245, 158, 11, 0.2); color: #fbbf24;", 2: "background: rgba(59, 130, 246, 0.2); color: #60a5fa;", 3: "background: rgba(16, 185, 129, 0.2); color: #34d399;", 4: "background: rgba(99, 102, 241, 0.2); color: #818cf8;" };
+
+            let formattedContent = "";
+            if (data.step === 1) {
+                const clean1 = cleanMarkdownText(data.content);
+                singleStepData.suspected = clean1;
+                updateStepper(2, true);
+                statusText.innerText = "Stage 2/4: Self-verifying suspected bugs against false alarms...";
+                formattedContent = `<div class="card-body">${escapeHtml(clean1)}</div>`;
+            } else if (data.step === 2) {
+                const clean2 = cleanMarkdownText(data.content);
+                singleStepData.confirmed = clean2;
+                const m = data.metrics || {};
+                singleStepData.metrics = m;
+                singleStepData.confirmed_count = m.confirmed_count || 0;
+                singleStepData.false_alarm_count = m.false_alarm_count || 0;
+
+                updateStepper(3, true);
+                statusText.innerText = "Stage 3/4: Synthesizing verified patch code...";
+                chartGrid.style.display = "grid";
+                kpiRow.style.display = "grid";
+                document.getElementById("kpiConfirmed").innerText = m.confirmed_count;
+                document.getElementById("kpiFalseAlarms").innerText = m.false_alarm_count;
+                renderFourCharts(m);
+
+                let highlighted = escapeHtml(clean2)
+                    .replace(/CONFIRMED/g, '<span class="badge-confirmed">CONFIRMED</span>')
+                    .replace(/FALSE ALARM/g, '<span class="badge-false-alarm">FALSE ALARM</span>');
+                formattedContent = `<div class="card-body">${highlighted}</div>`;
+            } else if (data.step === 3) {
+                const cleanCode = cleanMarkdownText(data.content, true);
+                singleStepData.fixed_code = cleanCode;
+                updateStepper(4, true);
+                statusText.innerText = "Stage 4/4: Double-checking patch for syntax & logical sanity...";
+                formattedContent = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Patched Python Implementation</span>
+                        <button type="button" class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy"></i> Copy Code</button>
+                    </div>
+                    <div class="code-box-container"><pre style="margin: 0;" id="fixedCodePre">${escapeHtml(cleanCode)}</pre></div>`;
+            } else if (data.step === 4) {
+                const clean4 = cleanMarkdownText(data.content);
+                singleStepData.check = clean4;
+                const isPass = clean4.toUpperCase().includes("LOOKS CORRECT");
+                document.getElementById("kpiVerdict").innerText = isPass ? "PASSED" : "FLAGGED";
+                document.getElementById("kpiVerdict").style.color = isPass ? "#34d399" : "#fbbf24";
+                if (data.metrics) renderFourCharts(data.metrics);
+
+                formattedContent = `
+                    <div class="verdict-callout ${isPass ? 'verdict-pass' : 'verdict-warn'}">
+                        <i class="ti ${isPass ? 'ti-circle-check' : 'ti-alert-triangle'}"></i>
+                        <span>${isPass ? 'VERIFIED: Patch is Correct & Sound' : 'ATTENTION: Patch May Require Review'}</span>
+                    </div>
+                    <div class="card-body">${escapeHtml(clean4)}</div>`;
+            }
+
+            card.innerHTML = `
+                <div class="card-top">
+                    <h3><i class="ti ${stepIcons[data.step]}"></i> Step ${data.step}: ${stepTitles[data.step]}</h3>
+                    <span class="card-badge" style="${badgeStyles[data.step]}">Stage ${data.step} of 4</span>
+                </div>
+                ${formattedContent}
+            `;
+            results.appendChild(card);
+
+            if (data.done) {
+                updateStepper(4, false);
+                stopTimer();
+                statusSpinner.style.display = "none";
+                statusText.innerHTML = '<i class="ti ti-circle-check" style="color: #34d399; margin-right: 4px;"></i> Single file review completed in ' + document.getElementById("elapsedTimer").innerText;
+                pdfBtn.style.display = "inline-flex";
+            }
+        }
+
+        // ==========================================
+        // 2. ENTIRE FOLDER BATCH REVIEW EXECUTION
+        // ==========================================
+        async function reviewEntireFolder() {
+            if (!loadedFolderFiles || loadedFolderFiles.length === 0) {
+                alert("Please upload or scan a folder containing Python files first.");
+                return;
+            }
+
+            setMode("folder");
+            const btn = document.getElementById("reviewFolderBtn");
+            const singleBtn = document.getElementById("reviewBtn");
+            const pdfBtn = document.getElementById("pdfBtn");
+            const results = document.getElementById("results");
+            const chartGrid = document.getElementById("chartGrid");
+            const kpiRow = document.getElementById("kpiRow");
+            const stepperContainer = document.getElementById("stepperContainer");
+            const statusText = document.getElementById("statusText");
+            const statusSpinner = document.getElementById("statusSpinner");
+            const folderTabsRow = document.getElementById("folderTabsRow");
+
+            btn.disabled = true;
+            singleBtn.disabled = true;
+            btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Auditing Folder...';
+            pdfBtn.style.display = "none";
+            results.innerHTML = "";
+            chartGrid.style.display = "none";
+            kpiRow.style.display = "none";
+            folderTabsRow.style.display = "flex";
+            folderTabsRow.innerHTML = "";
+            stepperContainer.style.display = "block";
+            statusSpinner.style.display = "inline-block";
+
+            folderBatchResults = [];
+            startTimer();
+            updateStepper(1, true);
+            statusText.innerText = `Preparing batch audit for ${loadedFolderFiles.length} files...`;
+
+            try {
+                const folderEngineConfig = getActiveEnginePayload();
+                if (folderEngineConfig.engine_mode === "api_key" && !folderEngineConfig.api_key) {
+                    alert("Please enter your API Key in the Cloud AI setup panel, or switch to Option 1 for 100% Offline Ollama.");
+                    document.getElementById("apiKeyPanel").style.display = "block";
+                    document.getElementById("apiKeyInput").focus();
+                    btn.disabled = false;
+                    singleBtn.disabled = false;
+                    btn.innerHTML = '<i class="ti ti-folders"></i> Review Entire Folder (Batch Audit)';
+                    statusSpinner.style.display = "none";
+                    statusText.innerText = "Batch execution cancelled: Missing Cloud API Key";
+                    return;
+                }
+
+                const res = await fetch("/review-folder-stream", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        folder_name: document.getElementById("manifestFolderName").innerText || "Codebase",
+                        files: loadedFolderFiles,
+                        engine_mode: folderEngineConfig.engine_mode,
+                        api_provider: folderEngineConfig.api_provider,
+                        api_key: folderEngineConfig.api_key,
+                        api_model: folderEngineConfig.api_model,
+                        api_endpoint: folderEngineConfig.api_endpoint
+                    })
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = "";
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    let lines = buffer.split("\n");
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        const data = JSON.parse(line);
+                        handleFolderStreamStep(data, results, statusText, statusSpinner, chartGrid, kpiRow, pdfBtn, folderTabsRow);
+                    }
+                }
+            } catch (err) {
+                statusText.innerText = "Error: " + err.message;
+                statusSpinner.style.display = "none";
+                stopTimer();
+            }
+
+            btn.disabled = false;
+            singleBtn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-folders"></i> Review Entire Folder (Batch Audit)';
+        }
+
+        function handleFolderStreamStep(data, results, statusText, statusSpinner, chartGrid, kpiRow, pdfBtn, folderTabsRow) {
+            if (data.type === "folder_manifest") {
+                statusText.innerText = `Manifest loaded: ${data.total_files} files in folder. Initiating sequential AI audit...`;
+            } else if (data.type === "file_start") {
+                updateStepper(Math.min(data.file_index, 4), true);
+                statusText.innerHTML = `<i class="ti ti-loader-2 spin"></i> Auditing file <strong>${data.file_index} of ${data.total_files}</strong>: <code>${data.filename}</code>...`;
+            } else if (data.type === "file_complete") {
+                const fr = data.file_result;
+                folderBatchResults.push(fr);
+
+                // Add File Tab
+                const tabBtn = document.createElement("button");
+                tabBtn.className = "file-tab-btn" + (data.file_index === 1 ? " active" : "");
+                tabBtn.id = `fileTabBtn${data.file_index - 1}`;
+                const bugs = fr.metrics.confirmed_count;
+                const badgeColor = bugs > 0 ? "#f87171" : "#34d399";
+                tabBtn.innerHTML = `<i class="ti ti-file-code"></i> ${fr.filename} <span style="background: ${badgeColor}; color: #0f172a; padding: 1px 6px; border-radius: 999px; font-size: 11px; font-weight: 800;">${bugs}</span>`;
+                tabBtn.onclick = () => showFolderFileResult(data.file_index - 1);
+                folderTabsRow.appendChild(tabBtn);
+
+                if (data.file_index === 1) {
+                    renderFolderFileResult(fr, results);
+                }
+            } else if (data.type === "folder_complete") {
+                updateStepper(4, false);
+                stopTimer();
+                statusSpinner.style.display = "none";
+                statusText.innerHTML = `<i class="ti ti-circle-check" style="color: #34d399; margin-right: 4px;"></i> Folder audit finished in ${document.getElementById("elapsedTimer").innerText}! (${data.aggregate.clean_files}/${data.aggregate.total_files} files clean)`;
+
+                folderAggregateData = data.aggregate;
+                chartGrid.style.display = "grid";
+                kpiRow.style.display = "grid";
+
+                document.getElementById("kpiConfirmed").innerText = data.aggregate.total_confirmed;
+                document.getElementById("kpiConfirmedLabel").innerText = "Total Bugs (Across Folder)";
+                document.getElementById("kpiFalseAlarms").innerText = data.aggregate.total_false_alarms;
+                document.getElementById("kpiFalseAlarmsLabel").innerText = "Total False Alarms";
+                document.getElementById("kpiStages").innerText = `${data.aggregate.total_files} Files`;
+                document.getElementById("kpiStagesLabel").innerText = "Files Audited";
+
+                const kpiVerdict = document.getElementById("kpiVerdict");
+                kpiVerdict.innerText = `${data.aggregate.overall_health}/100`;
+                kpiVerdict.style.color = data.aggregate.overall_health >= 80 ? "#34d399" : "#fbbf24";
+                document.getElementById("kpiVerdictLabel").innerText = "Codebase Health Index";
+
+                renderFourCharts(data.aggregate);
+                pdfBtn.style.display = "inline-flex";
+            }
+        }
+
+        function showFolderFileResult(idx) {
+            folderBatchResults.forEach((_, i) => {
+                const btn = document.getElementById(`fileTabBtn${i}`);
+                if (btn) btn.classList.toggle("active", i === idx);
+            });
+            const fr = folderBatchResults[idx];
+            if (fr) {
+                renderFolderFileResult(fr, document.getElementById("results"));
+            }
+        }
+
+        function renderFolderFileResult(fr, container) {
+            container.innerHTML = `
+                <div class="card card-step-1" style="grid-column: 1 / -1;">
+                    <div class="card-top">
+                        <h3><i class="ti ti-file-code" style="color: #38bdf8;"></i> Audit File: ${escapeHtml(fr.rel_path)}</h3>
+                        <span class="card-badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">
+                            ${fr.structure.loc ? fr.structure.loc.total + ' LOC' : ''} | ${fr.metrics.confirmed_count} Real Bug(s)
+                        </span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 12px;">
+                        <div style="background: var(--card-surface); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: 700; color: #fbbf24; margin-bottom: 4px;">Suspected Bugs</div>
+                            <div style="font-size: 13px; color: var(--text-body);">${escapeHtml(fr.suspected)}</div>
+                        </div>
+                        <div style="background: var(--card-surface); padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: 700; color: #60a5fa; margin-bottom: 4px;">Verified Bugs</div>
+                            <div style="font-size: 13px; color: var(--text-body);">${escapeHtml(fr.confirmed)}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 12px; font-weight: 700; color: #34d399;">Synthesized Code Patch for this File:</span>
+                            <button type="button" class="copy-btn" onclick="copyFolderPatchCode(this, '${fr.file_index}')"><i class="ti ti-copy"></i> Copy Patch</button>
+                        </div>
+                        <div class="code-box-container"><pre style="margin: 0;" id="folderPatchPre${fr.file_index}">${escapeHtml(fr.fixed_code)}</pre></div>
+                    </div>
+                    <div style="margin-top: 12px; padding: 8px 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; font-size: 13px; color: #34d399; font-weight: 600;">
+                        <i class="ti ti-circle-check"></i> Validation Verdict: ${escapeHtml(fr.check)}
+                    </div>
+                </div>
+            `;
+        }
+
+        function copyFolderPatchCode(btn, idx) {
+            const pre = document.getElementById(`folderPatchPre${idx}`);
+            if (!pre) return;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="ti ti-check"></i> Copied!';
+                btn.style.background = '#059669';
+                setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 2000);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement("div");
+            div.innerText = text || "";
+            return div.innerHTML;
+        }
+
+        function copyCode(btn) {
+            const pre = document.getElementById("fixedCodePre");
+            if (!pre) return;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="ti ti-check"></i> Copied!';
+                btn.style.background = '#059669';
+                setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 2000);
+            });
+        }
+
+        // ---- Render 4 Illustration Charts ----
+        function renderFourCharts(m) {
+            const ctx1 = document.getElementById("bugChart").getContext("2d");
+            if (bugChartInstance) bugChartInstance.destroy();
+            const conf = m.confirmed_count !== undefined ? m.confirmed_count : (m.total_confirmed || 0);
+            const falseA = m.false_alarm_count !== undefined ? m.false_alarm_count : (m.total_false_alarms || 0);
+            bugChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Confirmed Real Bugs', 'False Alarms Filtered'],
+                    datasets: [{ data: [conf, falseA], backgroundColor: ['#ef4444', '#64748b'], borderRadius: 6 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0, color: '#94a3b8' }, grid: { color: '#1e293b' } },
+                        x: { ticks: { color: '#cbd5e1' }, grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const ctx2 = document.getElementById("categoryChart").getContext("2d");
+            if (categoryChartInstance) categoryChartInstance.destroy();
+            const cats = m.categories || {};
+            categoryChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(cats),
+                    datasets: [{ data: Object.values(cats), backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#10b981'], borderWidth: 2, borderColor: '#0f172a' }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10.5 }, color: '#cbd5e1' } } }
+                }
+            });
+
+            const ctx3 = document.getElementById("severityChart").getContext("2d");
+            if (severityChartInstance) severityChartInstance.destroy();
+            const sev = m.severity || {};
+            severityChartInstance = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['Critical', 'High', 'Medium', 'Low'],
+                    datasets: [{
+                        data: [
+                            sev["Critical (Crash / Data Loss)"] || 0,
+                            sev["High (Wrong Output)"] || 0,
+                            sev["Medium (Edge Case)"] || 0,
+                            sev["Low (Code Smell / Style)"] || 0
+                        ],
+                        backgroundColor: ['#dc2626', '#ea580c', '#d97706', '#3b82f6'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0, color: '#94a3b8' }, grid: { color: '#1e293b' } },
+                        x: { ticks: { color: '#cbd5e1' }, grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const ctx4 = document.getElementById("qualityChart").getContext("2d");
+            if (qualityChartInstance) qualityChartInstance.destroy();
+            const qual = m.quality || { Reliability: 80, Security: 85, Maintainability: 80, Testability: 90 };
+            qualityChartInstance = new Chart(ctx4, {
+                type: 'radar',
+                data: {
+                    labels: ['Reliability', 'Security', 'Maintainability', 'Testability'],
+                    datasets: [{
+                        data: [qual.Reliability, qual.Security, qual.Maintainability, qual.Testability],
+                        backgroundColor: 'rgba(16, 185, 129, 0.25)',
+                        borderColor: '#10b981',
+                        pointBackgroundColor: '#10b981',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        r: { min: 0, max: 100, ticks: { display: false, stepSize: 20 }, grid: { color: '#1e293b' }, pointLabels: { color: '#cbd5e1', font: { size: 11, weight: 'bold' } } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function getChartBase64(chartInstance) {
+            if (!chartInstance || !chartInstance.canvas) return null;
+            const src = chartInstance.canvas;
+            const temp = document.createElement("canvas");
+            temp.width = src.width * 1.5;
+            temp.height = src.height * 1.5;
+            const ctx = temp.getContext("2d");
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, temp.width, temp.height);
+            ctx.drawImage(src, 0, 0);
+            return temp.toDataURL("image/png", 1.0);
+        }
+
+        // ---- Dual Mode PDF Generation ----
+        async function downloadPDF() {
+            const pdfBtn = document.getElementById("pdfBtn");
+            pdfBtn.disabled = true;
+            pdfBtn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Generating Executive Report...';
+
+            const bugChartBase64 = getChartBase64(bugChartInstance);
+            const categoryChartBase64 = getChartBase64(categoryChartInstance);
+            const severityChartBase64 = getChartBase64(severityChartInstance);
+            const qualityChartBase64 = getChartBase64(qualityChartInstance);
+
+            let payload = {};
+            if (currentMode === "folder" && folderBatchResults.length > 0) {
+                payload = {
+                    mode: "folder",
+                    folder_name: document.getElementById("manifestFolderName").innerText || "Codebase",
+                    file_results: folderBatchResults,
+                    folder_metadata: folderAggregateData,
+                    bug_chart_img: bugChartBase64,
+                    category_chart_img: categoryChartBase64,
+                    severity_chart_img: severityChartBase64,
+                    quality_chart_img: qualityChartBase64
+                };
+            } else {
+                payload = {
+                    mode: "single",
+                    suspected: singleStepData.suspected || "",
+                    confirmed: singleStepData.confirmed || "",
+                    fixed_code: singleStepData.fixed_code || "",
+                    check: singleStepData.check || "",
+                    bug_chart_img: bugChartBase64,
+                    category_chart_img: categoryChartBase64,
+                    severity_chart_img: severityChartBase64,
+                    quality_chart_img: qualityChartBase64,
+                    confirmed_count: singleStepData.confirmed_count || 0,
+                    false_alarm_count: singleStepData.false_alarm_count || 0,
+                    code_metadata: singleCodeStructure
+                };
+            }
+
+            try {
+                const response = await fetch("/generate-pdf", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = currentMode === "folder" ? "codesentinel_folder_audit.pdf" : "codesentinel_file_audit.pdf";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                alert("Error generating PDF: " + err.message);
+            }
+
+            pdfBtn.disabled = false;
+            pdfBtn.innerHTML = '<i class="ti ti-file-download"></i> Download Comprehensive PDF Report';
+        }
+    
+        window.addEventListener('DOMContentLoaded', () => {
+            initApiKeySettings();
+        });
+    
+    </script>
+</body>
+</html>
